@@ -4,14 +4,21 @@ module GJumper exposing
     , withGui, footer, header, Footer, Header, Game
     )
 
-{-| The GJumper console is a template for a grid based game.
+{-| The GJumper virtual console is a template for grid based games.
 It has the following Properties:
 
   - It displayes a 16x16 screen around the player. The player is always positioned
-    at (7,7) within the scren.
-  - It provides a 1x16 tiles high header and a 3x16 tiles high footer.
+    at (7,7) within the screen.
+  - It provides a 1x16 high header and a 3x16 high footer.
   - It uses the Buttons WASD (or arrow keys) for movement and ESC to reset the game.
   - Pressing a WASD button will first move the player and THEN trigger the tick-function.
+
+Here is a list of games that use this virtual console:
+
+  - [One Switch](https://orasund.itch.io/one-switch)
+  - [Swappernaut](https://orasund.itch.io/swappernaut)
+
+You can find the source files in the examples folder.
 
 
 # Main Type
@@ -44,7 +51,7 @@ import Random exposing (Generator, Seed)
 {-| The `Model` of a GJumper Game contains a player position, a grid and some
 aditional data.
 
-you can define a `square` how ever you want. Any information, that can not be
+You can define a `square` how ever you want. Any information, that can not be
 stored in the grid should be part of the `data`.
 
 -}
@@ -55,7 +62,7 @@ type alias GameData square data =
     }
 
 
-{-| At any point in time a game is either ongoing, Won or Lost. Once the game is
+{-| At any point in time a game is either `Ongoing`, `Won` or `Lost`. Once the game is
 done, the game can be reset by pressing a buttion, some of the data can be also
 transfered from one game session to another (like a level counter).
 -}
@@ -65,20 +72,20 @@ type Status
     | Lost
 
 
-{-| the main function of the game console.
+{-| The main function of the game console.
 
-  - init : the intial model (dependent on randomnes). It maybe inputs data
+  - init : The intial model (dependent on randomnes). It maybe inputs data
     from a previous run (like a level counter).
-  - isSolid : specifies whether a square is solid
-  - tick : updates the game (dependent on randomnes) and also returns the current
+  - isSolid : Specifies whether a square is solid
+  - tick : Updates the game (dependent on randomnes) and also returns the current
     status of the game. This function will only be called if the player could
     successfully move (if the square is not solid)
-  - view : specifies the gui.
+  - view : Specifies the gui.
   - title : The title of the game
-  - imgSize : the size of a square, tile.
-  - gameWon : a end screen after the game has been won. The screen is
+  - imgSize : The size of a square, tile.
+  - gameWon : A end screen after the game has been won. The screen is
     imgSize\*16 x imgSize\*20 big.
-  - gameOver : a end screen after the game has been lost. The screen is
+  - gameOver : A end screen after the game has been lost. The screen is
     imgSize\*16 x imgSize\*20 big.
 
 -}
@@ -116,15 +123,15 @@ define config =
 
 {-| The initial model.
 
-  - data : some custom data (anything you like)
+  - data : Some custom data (anything you like)
   - player : The starting position of the player on the grid
-  - rows : the height of the grid
-  - columns : the width of the grid
-  - level : a Matrix (list of lists) of squares. If an entry is Nothing, it might
+  - rows : The height of the grid
+  - columns : The width of the grid
+  - level : A Matrix (list of lists) of squares. If an entry is Nothing, it might
     be filled later with additional stuff.
-  - fixed : after the level has be created a fixed amount of squares will be
+  - fixed : After the level has be created a fixed amount of squares will be
     randomly placed within all empty squares.
-  - distribution: next all empty sqaures get filled regarding the given distribution.
+  - distribution: Next all empty sqaures get filled regarding the given distribution.
     The Float stated the relative occurence of the given spare. If some spots should
     stay empty, you need to add `(float,Nothing)` to the list where `float` is higher then 0.
 
@@ -148,7 +155,7 @@ type alias View square =
     Core.View square
 
 
-{-| specifies how things look.
+{-| Specifies how things look.
 
 It uses the [Tile](https://package.elm-lang.org/packages/Orasund/pixelengine/latest/PixelEngine-Tile) from Orasund/pixelengine.
 
@@ -167,7 +174,7 @@ view { player, square } tileset background =
         }
 
 
-{-| adds a Gui to the view.
+{-| Adds a Gui to the view.
 -}
 withGui : Header -> Footer -> Background -> View square -> View square
 withGui h f b (Core.View ({ background } as v)) =
@@ -181,26 +188,26 @@ withGui h f b (Core.View ({ background } as v)) =
         }
 
 
-{-| a header
+{-| A header
 -}
 type alias Header =
     Core.Header
 
 
-{-| a Footer
+{-| A Footer
 -}
 type alias Footer =
     Core.Footer
 
 
-{-| a header, the floats specify the x position. It must be between 0 and 16\*imgSize.
+{-| A header, the floats specify the x position. It must be between 0 and 16\*imgSize.
 -}
 header : List ( Float, Image Never ) -> Header
 header =
     Core.Header
 
 
-{-| a footer. the floats specify the x position. It must be between 0 and 16\*imgSize.
+{-| A footer. the floats specify the x position. It must be between 0 and 16\*imgSize.
 The y position depends on the list (first list has y=0, second list has y=1 and third has y = 2)
 -}
 footer : List ( Float, Image Never ) -> List ( Float, Image Never ) -> List ( Float, Image Never ) -> Footer
@@ -218,6 +225,8 @@ footer l1 l2 l3 =
         |> Core.Footer
 
 
+{-| The type of a game.
+-}
 type alias Game square model =
     PixelEngine () (Model square model) Msg
 
