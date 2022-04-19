@@ -1,11 +1,10 @@
 module Grid exposing
     ( Grid
-    , init, empty, insert, update, remove
-    , isEmpty, member, get, size, dimensions
+    , init, empty, build, random, getMember, insert, update, remove
+    , isEmpty, member, get, set, size, dimensions
     , positions, emptyPositions, values, toList, fromList
     , toDict, fromDict
     , map, filter, find
-    , build, getMember, random, set
     )
 
 {-| A `Grid` is a dictionary that has a size constraint.
@@ -20,12 +19,12 @@ Here is an example where such a grid is used:
 
 # Build
 
-@docs init, empty, insert, update, remove
+@docs init, empty, build, random, getMember, insert, update, remove
 
 
 # Query
 
-@docs isEmpty, member, get, size, dimensions
+@docs isEmpty, member, get, set, size, dimensions
 
 
 # List
@@ -40,12 +39,7 @@ Here is an example where such a grid is used:
 
 # Transform
 
-@docs map, foldl, foldr, filter, partition, find
-
-
-# Combine
-
-@docs union, intersect, diff
+@docs map, filter, find
 
 -}
 
@@ -141,6 +135,8 @@ insert pos elem =
     set pos (Just elem)
 
 
+{-| Set the element in the grid
+-}
 set : ( Int, Int ) -> a -> Array (Array a) -> Array (Array a)
 set ( i, j ) elem grid =
     grid
@@ -267,6 +263,8 @@ getMember pos grid =
         |> Maybe.andThen identity
 
 
+{-| Get the element in the grid
+-}
 get : ( Int, Int ) -> Array (Array a) -> Maybe a
 get ( i, j ) grid =
     grid
