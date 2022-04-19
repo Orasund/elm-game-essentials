@@ -37,14 +37,14 @@ You can find the source files in the examples folder.
 
 -}
 
+import Direction exposing (Direction(..))
 import GJumper.Core as Core
 import Grid exposing (Grid)
-import Grid.Direction exposing (Direction(..))
-import Grid.Position as Position exposing (Position)
 import PixelEngine exposing (Area, Background, Input(..), PixelEngine)
 import PixelEngine.Image exposing (Image)
 import PixelEngine.Options as Options exposing (Options)
 import PixelEngine.Tile exposing (Tile, Tileset)
+import Position as Position
 import Random exposing (Generator, Seed)
 
 
@@ -58,7 +58,7 @@ stored in the grid should be part of the `data`.
 type alias GameData square data =
     { data : data
     , grid : Grid square
-    , player : Position
+    , player : ( Int, Int )
     }
 
 
@@ -138,7 +138,7 @@ define config =
 -}
 type alias InitModel square data =
     { data : data
-    , player : Position
+    , player : ( Int, Int )
     , distribution :
         data
         -> ( ( Float, Maybe square ), List ( Float, Maybe square ) )
@@ -263,7 +263,7 @@ update :
         ->
             Generator
                 { data : data
-                , player : Position
+                , player : ( Int, Int )
                 , distribution :
                     data
                     -> ( ( Float, Maybe square ), List ( Float, Maybe square ) )
@@ -310,10 +310,10 @@ update { initfun, isSolid, tick } msg model =
 
         ( Move dir, Running { status, gameData, seed } ) ->
             let
-                newPos : Position
+                newPos : ( Int, Int )
                 newPos =
                     gameData.player
-                        |> Position.move 1 dir
+                        |> Position.add (dir |> Direction.toCoord)
                         |> (\( x, y ) -> ( x |> modBy 16, y |> modBy 16 ))
             in
             if status /= Ongoing then

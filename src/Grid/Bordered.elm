@@ -57,10 +57,9 @@ Here is an example where such a grid is used:
 -}
 
 import Dict exposing (Dict)
-import Grid.Position exposing (Position)
 
 
-mapDict : (Dict Position a -> Dict Position b) -> Grid a -> Grid b
+mapDict : (Dict ( Int, Int ) a -> Dict ( Int, Int ) b) -> Grid a -> Grid b
 mapDict fun (Grid { dict, rows, columns }) =
     Grid
         { dict = fun dict
@@ -97,7 +96,7 @@ If case of a invalid position, it returns an error.
 -}
 type Grid a
     = Grid
-        { dict : Dict Position a
+        { dict : Dict ( Int, Int ) a
         , rows : Int
         , columns : Int
         }
@@ -118,14 +117,14 @@ type Grid a
     grid |> isValid (42,0) --> False
 
 -}
-isValid : Position -> Grid a -> Bool
+isValid : ( Int, Int ) -> Grid a -> Bool
 isValid ( x, y ) (Grid { rows, columns }) =
     x >= 0 && x < columns && y >= 0 && y < rows
 
 
 {-| Create a grid
 -}
-fill : (Position -> Maybe a) -> { rows : Int, columns : Int } -> Grid a
+fill : (( Int, Int ) -> Maybe a) -> { rows : Int, columns : Int } -> Grid a
 fill fun config =
     empty config
         |> map (\pos -> always (fun pos))
@@ -145,7 +144,7 @@ empty { rows, columns } =
 {-| Insert a value at a position in a grid. Returns a `NotSuccessful` error if
 the position is occupied.
 -}
-insert : Position -> a -> Grid a -> Result Error (Grid a)
+insert : ( Int, Int ) -> a -> Grid a -> Result Error (Grid a)
 insert pos elem ((Grid { dict }) as grid) =
     if grid |> isValid pos then
         if dict |> Dict.member pos then
@@ -160,7 +159,7 @@ insert pos elem ((Grid { dict }) as grid) =
 
 {-| Update the value of a grid for a specific position with a given function.
 -}
-update : Position -> (Maybe a -> Result () (Maybe a)) -> Grid a -> Result Error (Grid a)
+update : ( Int, Int ) -> (Maybe a -> Result () (Maybe a)) -> Grid a -> Result Error (Grid a)
 update pos fun ((Grid { dict }) as grid) =
     if grid |> isValid pos then
         case dict |> Dict.get pos |> fun of
@@ -186,7 +185,7 @@ update pos fun ((Grid { dict }) as grid) =
 {-| Remove a vlaue from a grid. If the position is empty, it returs a
 `NotSuccessful` error.
 -}
-remove : Position -> Grid a -> Result Error (Grid a)
+remove : ( Int, Int ) -> Grid a -> Result Error (Grid a)
 remove pos ((Grid { dict }) as grid) =
     if grid |> isValid pos then
         if dict |> Dict.member pos then
@@ -224,7 +223,7 @@ isEmpty (Grid { dict }) =
 {-| Determine if a position is empty.
 Returns an `OutOfBounds` Error if the position is invalid.
 -}
-member : Position -> Grid a -> Result Error Bool
+member : ( Int, Int ) -> Grid a -> Result Error Bool
 member pos ((Grid { dict }) as grid) =
     if grid |> isValid pos then
         dict |> Dict.member pos |> Ok
@@ -236,7 +235,7 @@ member pos ((Grid { dict }) as grid) =
 {-| Get the value associated with a position. If the position is empty, return Nothing.
 Returns an `OutOfBounds` Error if the position is invalid.
 -}
-get : Position -> Grid a -> Result Error (Maybe a)
+get : ( Int, Int ) -> Grid a -> Result Error (Maybe a)
 get pos ((Grid { dict }) as grid) =
     if grid |> isValid pos then
         dict |> Dict.get pos |> Ok
@@ -263,14 +262,14 @@ dimensions (Grid { columns, rows }) =
 
 {-| Get all non empty positions in a grid, sorted from lowest to highest.
 -}
-positions : Grid a -> List Position
+positions : Grid a -> List ( Int, Int )
 positions (Grid { dict }) =
     dict |> Dict.keys
 
 
 {-| Get all empty positions in a grid, sorted from lowest to highest.
 -}
-emptyPositions : Grid a -> List Position
+emptyPositions : Grid a -> List ( Int, Int )
 emptyPositions =
     map
         (\_ maybeMark ->
@@ -293,14 +292,14 @@ values (Grid { dict }) =
 
 {-| Convert a grid into an association list of position-value pairs, sorted by the position.
 -}
-toList : Grid a -> List ( Position, a )
+toList : Grid a -> List ( ( Int, Int ), a )
 toList (Grid { dict }) =
     dict |> Dict.toList
 
 
 {-| Convert an association list into a grid.
 -}
-fromList : { rows : Int, columns : Int } -> List ( Position, a ) -> Grid a
+fromList : { rows : Int, columns : Int } -> List ( ( Int, Int ), a ) -> Grid a
 fromList config =
     List.foldl
         (\( pos, elem ) grid ->
@@ -316,21 +315,21 @@ fromList config =
 
 {-| Convert a grid into an associated dictionary
 -}
-toDict : Grid a -> Dict Position a
+toDict : Grid a -> Dict ( Int, Int ) a
 toDict (Grid { dict }) =
     dict
 
 
 {-| Convert an dictionary to a grid
 -}
-fromDict : { rows : Int, columns : Int } -> Dict Position a -> Grid a
+fromDict : { rows : Int, columns : Int } -> Dict ( Int, Int ) a -> Grid a
 fromDict config =
     Dict.toList >> fromList config
 
 
 {-| Apply a function to **all** positions in a grid.
 -}
-map : (Position -> Maybe a -> Maybe b) -> Grid a -> Grid b
+map : (( Int, Int ) -> Maybe a -> Maybe b) -> Grid a -> Grid b
 map fun ((Grid { rows, columns }) as grid) =
     grid
         |> foldl
@@ -352,7 +351,7 @@ map fun ((Grid { rows, columns }) as grid) =
 
 {-| Fold over **all** positions in a grid, row by row, from top down.
 -}
-foldl : (Position -> Maybe v -> b -> b) -> b -> Grid v -> b
+foldl : (( Int, Int ) -> Maybe v -> b -> b) -> b -> Grid v -> b
 foldl fun val (Grid { dict, rows, columns }) =
     List.range 0 (columns - 1)
         |> List.foldl
@@ -369,7 +368,7 @@ foldl fun val (Grid { dict, rows, columns }) =
 
 {-| Fold over **all** positions in a grid, row by row, from bottum up.
 -}
-foldr : (Position -> Maybe v -> b -> b) -> b -> Grid v -> b
+foldr : (( Int, Int ) -> Maybe v -> b -> b) -> b -> Grid v -> b
 foldr fun val (Grid { dict, rows, columns }) =
     List.range 0 (columns - 1)
         |> List.foldr
@@ -386,7 +385,7 @@ foldr fun val (Grid { dict, rows, columns }) =
 
 {-| Keep only the values that pass the given test.
 -}
-filter : (Position -> a -> Bool) -> Grid a -> Grid a
+filter : (( Int, Int ) -> a -> Bool) -> Grid a -> Grid a
 filter fun =
     mapDict (Dict.filter fun)
 
@@ -397,10 +396,10 @@ The first grid contains all values which passed the test,
 and the second contains the values that did not.
 
 -}
-partition : (Position -> a -> Bool) -> Grid a -> ( Grid a, Grid a )
+partition : (( Int, Int ) -> a -> Bool) -> Grid a -> ( Grid a, Grid a )
 partition fun ((Grid { dict }) as grid) =
     let
-        mapFunction : Dict Position c -> Grid c
+        mapFunction : Dict ( Int, Int ) c -> Grid c
         mapFunction d =
             grid |> mapDict (always d)
     in
@@ -411,10 +410,10 @@ partition fun ((Grid { dict }) as grid) =
 
 {-| Find the first value that passes a given test.
 -}
-find : (Position -> a -> Bool) -> Grid a -> Maybe ( Position, a )
+find : (( Int, Int ) -> a -> Bool) -> Grid a -> Maybe ( ( Int, Int ), a )
 find fun (Grid { dict }) =
     let
-        recFind : List ( Position, a ) -> Maybe ( Position, a )
+        recFind : List ( ( Int, Int ), a ) -> Maybe ( ( Int, Int ), a )
         recFind list =
             case list of
                 (( pos, elem ) as head) :: tail ->
