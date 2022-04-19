@@ -1,6 +1,6 @@
 module GJumper.Core exposing (Footer(..), Gui(..), Header(..), View(..), create, gridGenerator, toAreas, withFooter, withHeader)
 
-import Grid exposing (Grid)
+import Grid.Wrapped as Grid exposing (Grid)
 import PixelEngine exposing (Area, Background)
 import PixelEngine.Image exposing (Image)
 import PixelEngine.Tile exposing (Tile, Tileset)

@@ -10,25 +10,25 @@ import Grid exposing (..)
 
 
 
-grid : Grid Int
+grid : Grid (Maybe Int)
 grid =
     empty dimensions
 dimensions : { columns:Int , rows:Int }
 dimensions =
-    { columns=42
-    , rows=3
+    { columns=2
+    , rows=2
     }
 
 
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#toList: \n\n    grid |> insert (2,2) 42 |> toList\n    --> [( (2,2), 42 )]" <|
+    Test.test "#toList: \n\n    grid |> insert (1,1) 42 |> toList\n    --> [( (0,0), Nothing ),((1,0), Nothing ),((0,1), Nothing ),( (1,1), Just 42 )]" <|
         \() ->
             Expect.equal
                 (
-                grid |> insert (2,2) 42 |> toList
+                grid |> insert (1,1) 42 |> toList
                 )
                 (
-                [( (2,2), 42 )]
+                [( (0,0), Nothing ),((1,0), Nothing ),((0,1), Nothing ),( (1,1), Just 42 )]
                 )

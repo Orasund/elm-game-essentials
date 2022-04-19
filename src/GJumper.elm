@@ -39,7 +39,7 @@ You can find the source files in the examples folder.
 
 import Direction exposing (Direction(..))
 import GJumper.Core as Core
-import Grid exposing (Grid)
+import Grid.Wrapped as Grid exposing (Grid)
 import PixelEngine exposing (Area, Background, Input(..), PixelEngine)
 import PixelEngine.Image exposing (Image)
 import PixelEngine.Options as Options exposing (Options)

@@ -9,7 +9,9 @@ module Grid.Bordered exposing
     , union, intersect, diff
     )
 
-{-| A grid with a hard border around the edges. you cant read or write from squares
+{-| DEPRECATED. Use `Grid` instead.
+
+A grid with a hard border around the edges. you cant read or write from squares
 outside the border.
 Here is an example where such a grid is used:
 [Space Invaders](https://orasund.github.io/pixelengine/#SpaceInvaders).

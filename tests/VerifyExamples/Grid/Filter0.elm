@@ -10,11 +10,11 @@ import Grid exposing (..)
 
 
 
-grid : Grid Int
+grid : Grid (Maybe Int)
 grid =
     empty dimensions
         |> insert (2,4) 2
-        |> insert (2,3) 42
+        |> insert (2,2) 42
 dimensions : { columns:Int , rows:Int }
 dimensions =
     { columns=42

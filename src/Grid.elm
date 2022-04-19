@@ -1,11 +1,11 @@
 module Grid exposing
     ( Grid
-    , fill, empty, insert, update, remove
+    , init, empty, insert, update, remove
     , isEmpty, member, get, size, dimensions
     , positions, emptyPositions, values, toList, fromList
     , toDict, fromDict
-    , map, foldl, foldr, filter, partition, find
-    , union, intersect, diff
+    , map, filter, find
+    , build, getMember, random, set
     )
 
 {-| A `Grid` is a dictionary that has a size constraint.
@@ -20,7 +20,7 @@ Here is an example where such a grid is used:
 
 # Build
 
-@docs fill, empty, insert, update, remove
+@docs init, empty, insert, update, remove
 
 
 # Query
@@ -49,29 +49,9 @@ Here is an example where such a grid is used:
 
 -}
 
+import Array exposing (Array)
 import Dict exposing (Dict)
-
-
-mapDict : (Dict ( Int, Int ) a -> Dict ( Int, Int ) b) -> Grid a -> Grid b
-mapDict fun (Grid { dict, rows, columns }) =
-    Grid
-        { dict = fun dict
-        , rows = rows
-        , columns = columns
-        }
-
-
-wrap : Grid a -> ( Int, Int ) -> ( Int, Int )
-wrap (Grid { rows, columns }) ( x, y ) =
-    ( x |> modBy columns
-    , y |> modBy rows
-    )
-
-
-
----------------------------------
--- Exposed
----------------------------------
+import Random exposing (Generator)
 
 
 {-| A grid with a fixes amount of columns and rows.
@@ -84,7 +64,7 @@ It will wrap the borders (apply ModBy), making every (Int,Int) valid.
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
@@ -94,12 +74,8 @@ It will wrap the borders (apply ModBy), making every (Int,Int) valid.
 If instead you want to have hard border around your grid, use `Grid.Bordered` instead.
 
 -}
-type Grid a
-    = Grid
-        { dict : Dict ( Int, Int ) a
-        , rows : Int
-        , columns : Int
-        }
+type alias Grid a =
+    Array (Array a)
 
 
 {-| Create a grid
@@ -114,14 +90,17 @@ type Grid a
     grid =
         empty dimensions
 
-    fill (always <| Just ()) dimensions |> empty(Int,Int)s
+    init (always <| Just ()) dimensions |> emptyPositions
     --> []
 
 -}
-fill : (( Int, Int ) -> Maybe a) -> { rows : Int, columns : Int } -> Grid a
-fill fun config =
-    empty config
-        |> map (\pos -> always (fun pos))
+init : (( Int, Int ) -> a) -> { rows : Int, columns : Int } -> Array (Array a)
+init fun args =
+    Array.initialize args.columns
+        (\j ->
+            Array.initialize args.rows
+                (\i -> fun ( i, j ))
+        )
 
 
 {-| Create an empty grid
@@ -133,16 +112,12 @@ fill fun config =
         }
 
     empty dimensions
-    --> fill (always Nothing ) dimensions
+    --> init (always Nothing ) dimensions
 
 -}
-empty : { rows : Int, columns : Int } -> Grid a
-empty { rows, columns } =
-    Grid
-        { dict = Dict.empty
-        , rows = rows
-        , columns = columns
-        }
+empty : { rows : Int, columns : Int } -> Array (Array (Maybe a))
+empty =
+    init (always Nothing)
 
 
 {-| Insert a value at a (Int,Int) in a grid. Replaces value when there is a collision.
@@ -153,17 +128,25 @@ empty { rows, columns } =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
-    grid |> insert (2,2) 42 |> get (2,2)
+    grid |> insert (2,2) 42 |> getMember (2,2)
     --> Just 42
 
 -}
-insert : ( Int, Int ) -> a -> Grid a -> Grid a
-insert pos elem grid =
-    grid |> mapDict (Dict.insert (pos |> wrap grid) elem)
+insert : ( Int, Int ) -> a -> Array (Array (Maybe a)) -> Array (Array (Maybe a))
+insert pos elem =
+    set pos (Just elem)
+
+
+set : ( Int, Int ) -> a -> Array (Array a) -> Array (Array a)
+set ( i, j ) elem grid =
+    grid
+        |> Array.get j
+        |> Maybe.map (\array -> grid |> Array.set j (Array.set i elem array))
+        |> Maybe.withDefault grid
 
 
 {-| Update the value of a grid for a specific (Int,Int) with a given function.
@@ -174,7 +157,7 @@ insert pos elem grid =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
@@ -182,9 +165,18 @@ insert pos elem grid =
     --> grid |> insert (2,2) 42
 
 -}
-update : ( Int, Int ) -> (Maybe a -> Maybe a) -> Grid a -> Grid a
+update : ( Int, Int ) -> (Maybe a -> Maybe a) -> Array (Array (Maybe a)) -> Array (Array (Maybe a))
 update pos fun grid =
-    grid |> mapDict (Dict.update (pos |> wrap grid) fun)
+    grid
+        |> get pos
+        |> Maybe.map
+            (\elem ->
+                elem
+                    |> fun
+                    |> Maybe.map (\newElem -> grid |> insert pos newElem)
+                    |> Maybe.withDefault (grid |> remove pos)
+            )
+        |> Maybe.withDefault grid
 
 
 {-| Remove a vlaue from a grid. If the (Int,Int) is empty, no changes are made.
@@ -195,18 +187,18 @@ update pos fun grid =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
-    grid |> insert (2,2) 42 |> get (2,2) --> Just 42
-    grid |> insert (2,2) 42 |> remove (2,2) |> get (2,2)
+    grid |> insert (2,2) 42 |> getMember (2,2) --> Just 42
+    grid |> insert (2,2) 42 |> remove (2,2) |> getMember (2,2)
     --> Nothing
 
 -}
-remove : ( Int, Int ) -> Grid a -> Grid a
+remove : ( Int, Int ) -> Array (Array (Maybe a)) -> Array (Array (Maybe a))
 remove pos grid =
-    grid |> mapDict (Dict.remove (pos |> wrap grid))
+    grid |> set pos Nothing
 
 
 {-| Determine if a grid is empty.
@@ -217,7 +209,7 @@ remove pos grid =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
@@ -225,9 +217,11 @@ remove pos grid =
     grid |> insert (2,2) 42 |> isEmpty --> False
 
 -}
-isEmpty : Grid a -> Bool
-isEmpty (Grid { dict }) =
-    dict |> Dict.isEmpty
+isEmpty : Array (Array (Maybe a)) -> Bool
+isEmpty grid =
+    grid
+        |> Array.toList
+        |> List.all (\array -> array |> Array.toList |> List.all ((==) Nothing))
 
 
 {-| Determine if a (Int,Int) is empty.
@@ -238,7 +232,7 @@ isEmpty (Grid { dict }) =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
@@ -246,9 +240,9 @@ isEmpty (Grid { dict }) =
     --> True
 
 -}
-member : ( Int, Int ) -> Grid a -> Bool
-member pos ((Grid { dict }) as grid) =
-    dict |> Dict.member (pos |> wrap grid)
+member : ( Int, Int ) -> Array (Array (Maybe a)) -> Bool
+member pos grid =
+    getMember pos grid /= Nothing
 
 
 {-| Get the value associated with a (Int,Int). If the (Int,Int) is empty, return Nothing.
@@ -259,17 +253,25 @@ member pos ((Grid { dict }) as grid) =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
-    grid |> insert (2,2) 42 |> get (2,2)
+    grid |> insert (2,2) 42 |> getMember (2,2)
     --> Just 42
 
 -}
-get : ( Int, Int ) -> Grid a -> Maybe a
-get pos ((Grid { dict }) as grid) =
-    dict |> Dict.get (pos |> wrap grid)
+getMember : ( Int, Int ) -> Array (Array (Maybe a)) -> Maybe a
+getMember pos grid =
+    get pos grid
+        |> Maybe.andThen identity
+
+
+get : ( Int, Int ) -> Array (Array a) -> Maybe a
+get ( i, j ) grid =
+    grid
+        |> Array.get j
+        |> Maybe.andThen (Array.get i)
 
 
 {-| Determine the number of values in the grid.
@@ -280,7 +282,7 @@ get pos ((Grid { dict }) as grid) =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
@@ -288,9 +290,17 @@ get pos ((Grid { dict }) as grid) =
     --> 1
 
 -}
-size : Grid a -> Int
-size (Grid { dict }) =
-    dict |> Dict.size
+size : Array (Array (Maybe a)) -> Int
+size grid =
+    grid
+        |> Array.toList
+        |> List.concatMap
+            (\array ->
+                array
+                    |> Array.toList
+                    |> List.filter ((/=) Nothing)
+            )
+        |> List.length
 
 
 {-| Return the dimensions of the grid.
@@ -301,7 +311,7 @@ size (Grid { dict }) =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dim
 
@@ -310,9 +320,13 @@ size (Grid { dict }) =
 
 -}
 dimensions : Grid a -> { columns : Int, rows : Int }
-dimensions (Grid { columns, rows }) =
-    { columns = columns
-    , rows = rows
+dimensions grid =
+    { columns = grid |> Array.length
+    , rows =
+        grid
+            |> Array.get 0
+            |> Maybe.map Array.length
+            |> Maybe.withDefault 0
     }
 
 
@@ -324,7 +338,7 @@ dimensions (Grid { columns, rows }) =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
@@ -332,9 +346,11 @@ dimensions (Grid { columns, rows }) =
     --> [(2,2)]
 
 -}
-positions : Grid a -> List ( Int, Int )
-positions (Grid { dict }) =
-    dict |> Dict.keys
+positions : Array (Array (Maybe a)) -> List ( Int, Int )
+positions grid =
+    grid
+        |> toList
+        |> List.filterMap (\( first, second ) -> second |> Maybe.map (\_ -> first))
 
 
 {-| Get all of the values in a grid, in the order of their (Int,Int)s.
@@ -345,7 +361,7 @@ positions (Grid { dict }) =
         , rows=3
         }
 
-    grid : Grid a
+    grid : Grid (Maybe a)
     grid =
         empty dimensions
 
@@ -353,9 +369,9 @@ positions (Grid { dict }) =
     --> [42]
 
 -}
-values : Grid a -> List a
-values (Grid { dict }) =
-    dict |> Dict.values
+values : Array (Array (Maybe a)) -> List a
+values grid =
+    grid |> toList |> List.filterMap Tuple.second
 
 
 {-| Get all empty positions in a grid, sorted from lowest to highest.
@@ -366,9 +382,9 @@ values (Grid { dict }) =
         , rows=3
         }
 
-    grid : Grid Int
+    grid : Grid (Maybe Int)
     grid =
-        fill
+        init
             (always <| Just <| 42)
             dimensions
 
@@ -376,18 +392,19 @@ values (Grid { dict }) =
     --> [(2,2)]
 
 -}
-emptyPositions : Grid a -> List ( Int, Int )
-emptyPositions =
-    map
-        (\_ maybeMark ->
-            case maybeMark of
-                Just _ ->
-                    Nothing
+emptyPositions : Array (Array (Maybe a)) -> List ( Int, Int )
+emptyPositions grid =
+    grid
+        |> map
+            (\_ maybeMark ->
+                case maybeMark of
+                    Just _ ->
+                        Nothing
 
-                Nothing ->
-                    Just ()
-        )
-        >> positions
+                    Nothing ->
+                        Just ()
+            )
+        |> positions
 
 
 {-| Convert a grid into an association list of (Int,Int)-value pairs,
@@ -395,21 +412,30 @@ sorted by the (Int,Int).
 
     dimensions : { columns:Int , rows:Int }
     dimensions =
-        { columns=42
-        , rows=3
+        { columns=2
+        , rows=2
         }
 
-    grid : Grid Int
+    grid : Grid (Maybe Int)
     grid =
         empty dimensions
 
-    grid |> insert (2,2) 42 |> toList
-    --> [( (2,2), 42 )]
+    grid |> insert (1,1) 42 |> toList
+    --> [( (0,0), Nothing ),((1,0), Nothing ),((0,1), Nothing ),( (1,1), Just 42 )]
 
 -}
-toList : Grid a -> List ( ( Int, Int ), a )
-toList (Grid { dict }) =
-    dict |> Dict.toList
+toList : Array (Array a) -> List ( ( Int, Int ), a )
+toList grid =
+    grid
+        |> Array.indexedMap
+            (\j array ->
+                array
+                    |> Array.indexedMap
+                        (\i a -> ( ( i, j ), a ))
+                    |> Array.toList
+            )
+        |> Array.toList
+        |> List.concat
 
 
 {-| Convert an association list into a grid.
@@ -420,7 +446,7 @@ toList (Grid { dict }) =
         , rows=3
         }
 
-    grid : Grid Int
+    grid : Grid (Maybe Int)
     grid =
         empty dimensions
 
@@ -428,11 +454,18 @@ toList (Grid { dict }) =
     --> grid |> insert (2,2) 42 |> insert (2,1) 20
 
 -}
-fromList : { rows : Int, columns : Int } -> List ( ( Int, Int ), a ) -> Grid a
-fromList config =
-    List.foldl
-        (\( pos, elem ) -> insert pos elem)
-        (empty config)
+fromList : { rows : Int, columns : Int } -> List ( ( Int, Int ), a ) -> Array (Array (Maybe a))
+fromList args list =
+    let
+        dict =
+            list |> Dict.fromList
+    in
+    args
+        |> init
+            (\pos ->
+                dict
+                    |> Dict.get pos
+            )
 
 
 {-| Convert a grid into an associated dictionary
@@ -443,18 +476,24 @@ fromList config =
         , rows=3
         }
 
-    grid : Grid Int
+    grid : Grid (Maybe Int)
     grid =
         empty dimensions
             |> insert (2,2) 42
 
-    grid |> toDict |> fromDict dimensions |> get (2,2)
+    grid |> toDict |> fromDict dimensions |> getMember (2,2)
     --> Just 42
 
 -}
-toDict : Grid a -> Dict ( Int, Int ) a
-toDict (Grid { dict }) =
-    dict
+toDict : Array (Array (Maybe a)) -> Dict ( Int, Int ) a
+toDict array =
+    array
+        |> toList
+        |> List.filterMap
+            (\( first, second ) ->
+                second |> Maybe.map (\elem -> ( first, elem ))
+            )
+        |> Dict.fromList
 
 
 {-| Convert an dictionary to a grid
@@ -465,20 +504,20 @@ toDict (Grid { dict }) =
         , rows=3
         }
 
-    grid : Grid Int
+    grid : Grid (Maybe Int)
     grid =
         empty dimensions
 
-    grid |> toDict |> fromDict dimensions |> get (2,2)
+    grid |> toDict |> fromDict dimensions |> getMember (2,2)
     --> Nothing
 
 -}
-fromDict : { rows : Int, columns : Int } -> Dict ( Int, Int ) a -> Grid a
+fromDict : { rows : Int, columns : Int } -> Dict ( Int, Int ) a -> Array (Array (Maybe a))
 fromDict config =
     Dict.toList >> fromList config
 
 
-{-| Apply a function to **all** (Int,Int)s in a grid.
+{-| Apply a function to **all** positions in a grid.
 
     dimensions : { columns:Int , rows:Int }
     dimensions =
@@ -487,56 +526,17 @@ fromDict config =
         }
 
     empty dimensions |> map (\_ _ -> Just 42)
-    --> fill (always <| Just 42) dimensions
+    --> init (always <| Just 42) dimensions
 
 -}
-map : (( Int, Int ) -> Maybe a -> Maybe b) -> Grid a -> Grid b
-map fun ((Grid { rows, columns }) as grid) =
+map : (( Int, Int ) -> a -> b) -> Array (Array a) -> Array (Array b)
+map fun grid =
     grid
-        |> foldl
-            (\pos elem ->
-                case fun pos elem of
-                    Just newElem ->
-                        insert pos newElem
-
-                    Nothing ->
-                        identity
+        |> Array.indexedMap
+            (\j ->
+                Array.indexedMap
+                    (\i -> fun ( i, j ))
             )
-            (empty { rows = rows, columns = columns })
-
-
-{-| Fold over **all** (Int,Int)s in a grid, row by row, from top down.
--}
-foldl : (( Int, Int ) -> Maybe v -> b -> b) -> b -> Grid v -> b
-foldl fun val (Grid { dict, rows, columns }) =
-    List.range 0 (columns - 1)
-        |> List.foldl
-            (\x out ->
-                List.range 0 (rows - 1)
-                    |> List.foldl
-                        (\y ->
-                            fun ( x, y ) (dict |> Dict.get ( x, y ))
-                        )
-                        out
-            )
-            val
-
-
-{-| Fold over **all** (Int,Int)s in a grid, row by row, from bottum up.
--}
-foldr : (( Int, Int ) -> Maybe v -> b -> b) -> b -> Grid v -> b
-foldr fun val (Grid { dict, rows, columns }) =
-    List.range 0 (columns - 1)
-        |> List.foldr
-            (\x out ->
-                List.range 0 (rows - 1)
-                    |> List.foldr
-                        (\y ->
-                            fun ( x, y ) (dict |> Dict.get ( x, y ))
-                        )
-                        out
-            )
-            val
 
 
 {-| Keep only the values that pass the given test.
@@ -547,43 +547,37 @@ foldr fun val (Grid { dict, rows, columns }) =
         , rows=3
         }
 
-    grid : Grid Int
+    grid : Grid (Maybe Int)
     grid =
         empty dimensions
             |> insert (2,4) 2
-            |> insert (2,3) 42
+            |> insert (2,2) 42
 
     grid |> filter (\_ -> (==) 42) |> values
     --> [42]
 
 -}
-filter : (( Int, Int ) -> a -> Bool) -> Grid a -> Grid a
-filter fun =
-    mapDict (Dict.filter fun)
+filter : (( Int, Int ) -> a -> Bool) -> Array (Array (Maybe a)) -> Array (Array (Maybe a))
+filter fun grid =
+    grid
+        |> map
+            (\pos maybe ->
+                maybe
+                    |> Maybe.andThen
+                        (\elem ->
+                            if fun pos elem then
+                                Just elem
 
-
-{-| Partition a grid according to some test.
-
-The first grid contains all values which passed the test,
-and the second contains the values that did not.
-
--}
-partition : (( Int, Int ) -> a -> Bool) -> Grid a -> ( Grid a, Grid a )
-partition fun ((Grid { dict }) as grid) =
-    let
-        mapFunction : Dict ( Int, Int ) c -> Grid c
-        mapFunction d =
-            grid |> mapDict (always d)
-    in
-    dict
-        |> Dict.partition fun
-        |> Tuple.mapBoth mapFunction mapFunction
+                            else
+                                Nothing
+                        )
+            )
 
 
 {-| Find the first value that passes a given test.
 -}
-find : (( Int, Int ) -> a -> Bool) -> Grid a -> Maybe ( ( Int, Int ), a )
-find fun (Grid { dict }) =
+find : (( Int, Int ) -> a -> Bool) -> Array (Array a) -> Maybe ( ( Int, Int ), a )
+find fun grid =
     let
         recFind : List ( ( Int, Int ), a ) -> Maybe ( ( Int, Int ), a )
         recFind list =
@@ -598,41 +592,25 @@ find fun (Grid { dict }) =
                 [] ->
                     Nothing
     in
-    dict
-        |> Dict.toList
+    grid
+        |> toList
         |> recFind
 
 
-{-| Combine two grids.
-If there is a collision, preference is given to the first grid.
+{-| Build a grid out of lists
 -}
-union : Grid a -> Grid a -> Grid a
-union (Grid { dict, rows, columns }) ((Grid g2) as grid) =
-    if rows == g2.rows && columns == g2.columns then
-        grid |> mapDict (Dict.union dict)
-
-    else
-        grid
+build : List (List a) -> Array (Array a)
+build list =
+    list
+        |> Array.fromList
+        |> Array.map Array.fromList
 
 
-{-| Keep a value when its (Int,Int) appears in the second grid.
-Preference is given to values in the first grid.
+{-| Generate a random grid based on a cell generator
 -}
-intersect : Grid a -> Grid a -> Grid a
-intersect (Grid { dict, rows, columns }) ((Grid g2) as grid) =
-    if rows == g2.rows && columns == g2.columns then
-        grid |> mapDict (Dict.intersect dict)
-
-    else
-        grid
-
-
-{-| Keep a value when its (Int,Int) does not appear in the second grid.
--}
-diff : Grid a -> Grid a -> Grid a
-diff (Grid { dict, rows, columns }) ((Grid g2) as grid) =
-    if rows == g2.rows && columns == g2.columns then
-        grid |> mapDict (Dict.diff dict)
-
-    else
-        grid
+random : { columns : Int, rows : Int } -> Generator a -> Generator (Array (Array a))
+random args gen =
+    gen
+        |> Random.list args.rows
+        |> Random.list args.columns
+        |> Random.map build

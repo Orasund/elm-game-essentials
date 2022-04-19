@@ -10,7 +10,7 @@ import Grid exposing (..)
 
 
 
-grid : Grid Int
+grid : Grid (Maybe Int)
 grid =
     empty dimensions
         |> insert (2,2) 42
@@ -24,11 +24,11 @@ dimensions =
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#toDict: \n\n    grid |> toDict |> fromDict dimensions |> get (2,2)\n    --> Just 42" <|
+    Test.test "#toDict: \n\n    grid |> toDict |> fromDict dimensions |> getMember (2,2)\n    --> Just 42" <|
         \() ->
             Expect.equal
                 (
-                grid |> toDict |> fromDict dimensions |> get (2,2)
+                grid |> toDict |> fromDict dimensions |> getMember (2,2)
                 )
                 (
                 Just 42

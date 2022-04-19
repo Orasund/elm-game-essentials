@@ -10,7 +10,7 @@ import Grid exposing (..)
 
 
 
-grid : Grid a
+grid : Grid (Maybe a)
 grid =
     empty dimensions
 dimensions : { columns:Int , rows:Int }

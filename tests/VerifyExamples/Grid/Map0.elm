@@ -20,12 +20,12 @@ dimensions =
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#map: \n\n    empty dimensions |> map (\\_ _ -> Just 42)\n    --> fill (always <| Just 42) dimensions" <|
+    Test.test "#map: \n\n    empty dimensions |> map (\\_ _ -> Just 42)\n    --> init (always <| Just 42) dimensions" <|
         \() ->
             Expect.equal
                 (
                 empty dimensions |> map (\_ _ -> Just 42)
                 )
                 (
-                fill (always <| Just 42) dimensions
+                init (always <| Just 42) dimensions
                 )

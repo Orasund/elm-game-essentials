@@ -142,13 +142,14 @@ fromCoord pos =
 
 {-| Convert a Direction into a coord.
 
-    let
-        list = asList
-            |> (\(head,tail) -> head :: tail)
-    in
-        list
+    list : List Direction
+    list =
+        asList
+        |> (\(head,tail) -> head :: tail)
+
+    list
         |> List.map toCoord
-        |> List.map fromCoord
+        |> List.filterMap fromCoord
         --> list
 
     Right
@@ -173,23 +174,6 @@ toCoord dir =
 
 
 {-| Convert a direction into an angle.
-
-    Right
-    |> toAngle
-    --> 0
-
-    Up
-    |> toAngle
-    --> pi / 2
-
-    Left
-    |> toAngle
-    --> pi
-
-    Down
-    |> toAngle
-    --> 3 * pi / 2
-
 -}
 toAngle : Direction -> Float
 toAngle dir =

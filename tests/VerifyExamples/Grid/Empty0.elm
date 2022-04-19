@@ -20,12 +20,12 @@ dimensions =
 
 spec0 : Test.Test
 spec0 =
-    Test.test "#empty: \n\n    empty dimensions\n    --> fill (always Nothing ) dimensions" <|
+    Test.test "#empty: \n\n    empty dimensions\n    --> init (always Nothing ) dimensions" <|
         \() ->
             Expect.equal
                 (
                 empty dimensions
                 )
                 (
-                fill (always Nothing ) dimensions
+                init (always Nothing ) dimensions
                 )

@@ -10,7 +10,7 @@ import Grid exposing (..)
 
 
 
-grid : Grid a
+grid : Grid (Maybe a)
 grid =
     empty dimensions
 dimensions : { columns:Int , rows:Int }
@@ -23,11 +23,11 @@ dimensions =
 
 spec1 : Test.Test
 spec1 =
-    Test.test "#remove: \n\n    grid |> insert (2,2) 42 |> get (2,2)\n    --> Just 42" <|
+    Test.test "#remove: \n\n    grid |> insert (2,2) 42 |> getMember (2,2)\n    --> Just 42" <|
         \() ->
             Expect.equal
                 (
-                grid |> insert (2,2) 42 |> get (2,2)
+                grid |> insert (2,2) 42 |> getMember (2,2)
                 )
                 (
                 Just 42

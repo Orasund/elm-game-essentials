@@ -10,9 +10,9 @@ import Grid exposing (..)
 
 
 
-grid : Grid Int
+grid : Grid (Maybe Int)
 grid =
-    fill
+    init
         (always <| Just <| 42)
         dimensions
 dimensions : { columns:Int , rows:Int }

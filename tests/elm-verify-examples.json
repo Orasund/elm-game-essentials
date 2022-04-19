@@ -1,4 +1,11 @@
 {
   "root": "../src",
-  "tests": ["Location","Grid","Grid.Bordered","Grid.Direction","Grid.Position"]
+  "tests": [
+    "Location",
+    "Grid",
+    "Grid.Wrapped",
+    "Grid.Bordered",
+    "Direction",
+    "Position"
+  ]
 }
