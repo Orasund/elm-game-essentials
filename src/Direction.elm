@@ -1,8 +1,8 @@
-module Direction exposing (Direction(..), mirror, rotateLeftwise, rotateRightwise, fromCoord, toAngle, toCoord)
+module Direction exposing (Direction(..), asList, mirror, rotateLeftwise, rotateRightwise, fromCoord, toAngle, toCoord)
 
 {-|
 
-@docs Direction, mirror, rotateLeftwise, rotateRightwise, fromCoord, toAngle, toCoord
+@docs Direction, asList, mirror, rotateLeftwise, rotateRightwise, fromCoord, toAngle, toCoord
 
 -}
 
