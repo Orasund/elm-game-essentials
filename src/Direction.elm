@@ -7,7 +7,7 @@ module Direction exposing (Direction(..), asList, mirror, rotateLeftwise, rotate
 -}
 
 
-{-| A abstract concept of a direction on a grid.
+{-| An abstract concept of a direction on a grid.
 -}
 type Direction
     = Up
