@@ -2,7 +2,7 @@ module Position exposing (add, addTo, coordTo, random, toPoint)
 
 {-|
 
-@docs Position, move, add, addTo, coordTo, random, toPoint
+@docs add, addTo, coordTo, random, toPoint
 
 -}
 
